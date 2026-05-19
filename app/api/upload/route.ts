@@ -61,9 +61,10 @@ export async function DELETE(request: Request) {
     await supabaseAdmin.storage.from(env.storageBucketName).remove([path]);
   }
 
-  const query = supabaseAdmin.from("uploaded_files").delete().eq("session_id", sessionId);
   if (body.fileUrl) {
-    await query.eq("file_url", body.fileUrl);
+    await supabaseAdmin.from("uploaded_files").delete().eq("session_id", sessionId).eq("file_url", body.fileUrl);
+  } else {
+    await supabaseAdmin.from("uploaded_files").delete().eq("session_id", sessionId);
   }
 
   return NextResponse.json({ ok: true });
