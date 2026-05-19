@@ -1,6 +1,6 @@
 # AI Memorial Product Studio (POC)
 
-This repo now contains Part 1 + Part 2 + Part 3 foundations:
+This repo now contains Part 1 + Part 2 + Part 3 foundations, plus a stabilization pass:
 
 - Next.js app ready for Vercel
 - Supabase Postgres tables for orders, uploads, generated previews
@@ -12,6 +12,9 @@ This repo now contains Part 1 + Part 2 + Part 3 foundations:
 - Customer preview approval before order submission
 - Password-protected admin dashboard at `/admin`
 - Admin order list/detail, status updates, internal notes
+- Hardened backend input validation/sanitization
+- Upload deletion endpoint for customer photo removal
+- Automated validation tests
 
 ## Routes
 
@@ -51,6 +54,7 @@ Expected file paths:
 ## 4) API Routes
 
 - `POST /api/upload` (multipart `file` + `sessionId`)
+- `DELETE /api/upload` (remove uploaded file by `sessionId` + `filePath/fileUrl`)
 - `POST /api/generate-preview`
 - `POST /api/previews/approve` (customer approval step)
 - `POST /api/orders` (requires approved preview)
@@ -76,13 +80,6 @@ Expected file paths:
 - `hobbiesInterestsPlaces`
 - `generalInstructions`
 
-### `POST /api/generate-preview` response
-
-- `previewId`
-- `prompt` (stored for audit/debug)
-- `artworkUrl` (flat artwork PNG with app-rendered text)
-- `mockupUrl` (product preview PNG)
-
 ### `POST /api/previews/approve` request body
 
 - `sessionId` (required)
@@ -93,6 +90,14 @@ Marks one preview as approved for that session.
 ### `POST /api/orders` requirement
 
 Orders are rejected unless `approved_preview_id` is present and approved for `session_id`.
+
+## 5) Tests
+
+Run:
+
+- `npm test`
+
+Current test coverage includes core validation rules in `tests/validation.test.ts`.
 
 ## Notes
 
