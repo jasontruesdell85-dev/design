@@ -1,14 +1,17 @@
 # AI Memorial Product Studio (Backend/Admin POC)
 
-This repo now contains the architecture foundation from spec Part 1:
+This repo now contains the Part 1 + Part 2 foundations:
 
 - Next.js app ready for Vercel
 - Supabase Postgres tables for orders, uploads, generated previews
 - Supabase storage upload + generated image persistence
-- Server-side image generation route using OpenAI
+- Guarded memorial prompt builder for OpenAI image generation
+- Server-side text overlay for accurate names/dates/messages
+- Product mockup rendering for wooden plaque, glass plaque, and glass candle
 - Order submission validation and persistence
 - Password-protected admin dashboard at `/admin`
 - Admin order list/detail, status updates, internal notes
+- Admin preview approval flow that copies approved artwork to order storage paths
 
 ## 1) Environment
 
@@ -41,7 +44,7 @@ Expected file paths:
 ## 4) API Routes
 
 - `POST /api/upload` (multipart `file` + `sessionId`)
-- `POST /api/generate-preview` (`sessionId`, `productId`, `prompt`)
+- `POST /api/generate-preview`
 - `POST /api/orders` (order payload)
 - `POST /api/admin/login` (`password`)
 - `DELETE /api/admin/login` (logout)
@@ -49,8 +52,42 @@ Expected file paths:
 - `GET /api/admin/orders/:id`
 - `PATCH /api/admin/orders/:id`
 
+### `POST /api/generate-preview` request body
+
+- `sessionId` (required)
+- `productId` (required: `wooden_plaque`, `glass_plaque`, `glass_candle`)
+- `productName`
+- `material`
+- `orientation` (`portrait` or `landscape`)
+- `deceasedName`
+- `memorialDates`
+- `quoteOrMessage`
+- `themeStyle`
+- `colors`
+- `religiousOrSpiritualElements`
+- `hobbiesInterestsPlaces`
+- `generalInstructions`
+
+### `POST /api/generate-preview` response
+
+- `previewId`
+- `prompt` (stored in DB for audit/debug)
+- `artworkUrl` (flat artwork PNG with accurate app-rendered text)
+- `mockupUrl` (product preview PNG)
+
+## 5) Admin Preview Approval
+
+In `/admin/orders/:id`, each generated preview can be approved.
+
+Approval action:
+
+- marks one preview as approved (`is_approved = true`)
+- copies artwork to `orders/{orderId}/approved-artwork.png`
+- copies mockup to `orders/{orderId}/mockup.png`
+- updates `orders.approved_artwork_url` and `orders.approved_mockup_url`
+
 ## Notes
 
 - The OpenAI key is never exposed client-side.
-- Product definitions can remain hardcoded for POC and move to DB later.
-- This commit focuses on backend architecture/admin requirements from the first PDF.
+- AI is used for visual background generation; critical text is rendered by the app.
+- Product definitions are hardcoded for POC and can be moved to database later.
