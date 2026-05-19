@@ -1,6 +1,6 @@
-# AI Memorial Product Studio (Backend/Admin POC)
+# AI Memorial Product Studio (POC)
 
-This repo now contains the Part 1 + Part 2 foundations:
+This repo now contains Part 1 + Part 2 + Part 3 foundations:
 
 - Next.js app ready for Vercel
 - Supabase Postgres tables for orders, uploads, generated previews
@@ -8,10 +8,17 @@ This repo now contains the Part 1 + Part 2 foundations:
 - Guarded memorial prompt builder for OpenAI image generation
 - Server-side text overlay for accurate names/dates/messages
 - Product mockup rendering for wooden plaque, glass plaque, and glass candle
-- Order submission validation and persistence
+- Customer-facing multi-step `/studio` workflow
+- Customer preview approval before order submission
 - Password-protected admin dashboard at `/admin`
 - Admin order list/detail, status updates, internal notes
-- Admin preview approval flow that copies approved artwork to order storage paths
+
+## Routes
+
+- `/` home launcher
+- `/studio` full customer workflow
+- `/admin`
+- `/admin/orders/:id`
 
 ## 1) Environment
 
@@ -45,7 +52,8 @@ Expected file paths:
 
 - `POST /api/upload` (multipart `file` + `sessionId`)
 - `POST /api/generate-preview`
-- `POST /api/orders` (order payload)
+- `POST /api/previews/approve` (customer approval step)
+- `POST /api/orders` (requires approved preview)
 - `POST /api/admin/login` (`password`)
 - `DELETE /api/admin/login` (logout)
 - `GET /api/admin/orders`
@@ -71,23 +79,23 @@ Expected file paths:
 ### `POST /api/generate-preview` response
 
 - `previewId`
-- `prompt` (stored in DB for audit/debug)
-- `artworkUrl` (flat artwork PNG with accurate app-rendered text)
+- `prompt` (stored for audit/debug)
+- `artworkUrl` (flat artwork PNG with app-rendered text)
 - `mockupUrl` (product preview PNG)
 
-## 5) Admin Preview Approval
+### `POST /api/previews/approve` request body
 
-In `/admin/orders/:id`, each generated preview can be approved.
+- `sessionId` (required)
+- `previewId` (required)
 
-Approval action:
+Marks one preview as approved for that session.
 
-- marks one preview as approved (`is_approved = true`)
-- copies artwork to `orders/{orderId}/approved-artwork.png`
-- copies mockup to `orders/{orderId}/mockup.png`
-- updates `orders.approved_artwork_url` and `orders.approved_mockup_url`
+### `POST /api/orders` requirement
+
+Orders are rejected unless `approved_preview_id` is present and approved for `session_id`.
 
 ## Notes
 
 - The OpenAI key is never exposed client-side.
 - AI is used for visual background generation; critical text is rendered by the app.
-- Product definitions are hardcoded for POC and can be moved to database later.
+- Product definitions are hardcoded for POC and can move to DB later.
