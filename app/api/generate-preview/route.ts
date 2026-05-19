@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { buildMemorialPrompt } from "@/lib/prompt-builder";
 import { composeArtwork, composeMockup } from "@/lib/image-compose";
+import { cleanText, validOrientation, validProductId, validSessionId } from "@/lib/validation";
 
 type GenerateRequest = {
   sessionId?: string;
@@ -27,30 +28,33 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as GenerateRequest;
+  const sessionId = validSessionId(body.sessionId);
+  const productId = cleanText(body.productId, 40);
+  const orientation = validOrientation(body.orientation);
 
-  if (!body.sessionId || !body.productId) {
-    return NextResponse.json({ error: "sessionId and productId are required" }, { status: 400 });
+  if (!sessionId || !validProductId(productId)) {
+    return NextResponse.json({ error: "Valid sessionId and productId are required" }, { status: 400 });
   }
 
   const prompt = buildMemorialPrompt({
-    productName: body.productName,
-    material: body.material,
-    orientation: body.orientation,
-    deceasedName: body.deceasedName,
-    memorialDates: body.memorialDates,
-    quoteOrMessage: body.quoteOrMessage,
-    themeStyle: body.themeStyle,
-    colors: body.colors,
-    religiousOrSpiritualElements: body.religiousOrSpiritualElements,
-    hobbiesInterestsPlaces: body.hobbiesInterestsPlaces,
-    generalInstructions: body.generalInstructions
+    productName: cleanText(body.productName, 80),
+    material: cleanText(body.material, 80),
+    orientation,
+    deceasedName: cleanText(body.deceasedName, 120),
+    memorialDates: cleanText(body.memorialDates, 80),
+    quoteOrMessage: cleanText(body.quoteOrMessage, 300),
+    themeStyle: cleanText(body.themeStyle, 300),
+    colors: cleanText(body.colors, 180),
+    religiousOrSpiritualElements: cleanText(body.religiousOrSpiritualElements, 240),
+    hobbiesInterestsPlaces: cleanText(body.hobbiesInterestsPlaces, 600),
+    generalInstructions: cleanText(body.generalInstructions, 900)
   });
 
   const openai = new OpenAI({ apiKey: env.openAiApiKey });
   const response = await openai.images.generate({
     model: "gpt-image-1",
     prompt,
-    size: body.orientation === "landscape" ? "1536x1024" : "1024x1536"
+    size: orientation === "landscape" ? "1536x1024" : "1024x1536"
   });
 
   const b64 = response.data[0]?.b64_json;
@@ -60,18 +64,18 @@ export async function POST(request: Request) {
 
   const generatedBuffer = Buffer.from(b64, "base64");
   const artworkBuffer = await composeArtwork(generatedBuffer, {
-    productId: body.productId,
-    orientation: body.orientation,
-    deceasedName: body.deceasedName,
-    memorialDates: body.memorialDates,
-    quoteOrMessage: body.quoteOrMessage
+    productId,
+    orientation,
+    deceasedName: cleanText(body.deceasedName, 120),
+    memorialDates: cleanText(body.memorialDates, 80),
+    quoteOrMessage: cleanText(body.quoteOrMessage, 300)
   });
 
-  const mockupBuffer = await composeMockup(artworkBuffer, body.productId);
+  const mockupBuffer = await composeMockup(artworkBuffer, productId);
 
   const ts = Date.now();
-  const artworkPath = `generated/${body.sessionId}/artwork-${ts}.png`;
-  const mockupPath = `generated/${body.sessionId}/mockup-${ts}.png`;
+  const artworkPath = `generated/${sessionId}/artwork-${ts}.png`;
+  const mockupPath = `generated/${sessionId}/mockup-${ts}.png`;
 
   const [artworkUpload, mockupUpload] = await Promise.all([
     supabaseAdmin.storage.from(env.storageBucketName).upload(artworkPath, artworkBuffer, { contentType: "image/png", upsert: true }),
@@ -88,8 +92,8 @@ export async function POST(request: Request) {
   const { data: preview, error: previewError } = await supabaseAdmin
     .from("generated_previews")
     .insert({
-      session_id: body.sessionId,
-      product_id: body.productId,
+      session_id: sessionId,
+      product_id: productId,
       prompt_used: prompt,
       artwork_url: artworkUrl,
       mockup_url: mockupUrl,
