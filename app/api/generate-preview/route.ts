@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     size: orientation === "landscape" ? "1536x1024" : "1024x1536"
   });
 
-  const b64 = response.data[0]?.b64_json;
+  const b64 = response.data?.[0]?.b64_json;
   if (!b64) {
     return NextResponse.json({ error: "No image data returned" }, { status: 500 });
   }
@@ -102,8 +102,8 @@ export async function POST(request: Request) {
     .select("id")
     .single();
 
-  if (previewError) {
-    return NextResponse.json({ error: previewError.message }, { status: 500 });
+  if (previewError || !preview) {
+    return NextResponse.json({ error: previewError?.message ?? "Failed to save preview" }, { status: 500 });
   }
 
   return NextResponse.json({ previewId: preview.id, prompt, artworkUrl, mockupUrl });
