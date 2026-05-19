@@ -64,34 +64,30 @@ Expected file paths:
 - `GET /api/admin/orders/:id`
 - `PATCH /api/admin/orders/:id`
 
-### `POST /api/generate-preview` request body
+## 5) Deploy Checklist (Vercel + Supabase)
 
-- `sessionId` (required)
-- `productId` (required: `wooden_plaque`, `glass_plaque`, `glass_candle`)
-- `productName`
-- `material`
-- `orientation` (`portrait` or `landscape`)
-- `deceasedName`
-- `memorialDates`
-- `quoteOrMessage`
-- `themeStyle`
-- `colors`
-- `religiousOrSpiritualElements`
-- `hobbiesInterestsPlaces`
-- `generalInstructions`
+1. In Supabase SQL Editor, run `supabase/schema.sql`.
+2. In Supabase Storage, create your bucket (example: `memorial-assets`).
+3. For this POC, set the storage bucket to public (required by current public URL usage).
+4. In Vercel project settings, add these environment variables for Production:
+- `OPENAI_API_KEY`
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `STORAGE_BUCKET_NAME`
+- `ADMIN_PASSWORD`
+- `NEXT_PUBLIC_APP_URL` (set to your Vercel production URL, e.g. `https://your-app.vercel.app`)
+5. Redeploy after variables are saved.
+6. Smoke test production:
+- Open `/studio`
+- Select a product
+- Upload at least one image
+- Generate preview
+- Approve preview
+- Submit order
+- Confirm record appears in `/admin`
 
-### `POST /api/previews/approve` request body
-
-- `sessionId` (required)
-- `previewId` (required)
-
-Marks one preview as approved for that session.
-
-### `POST /api/orders` requirement
-
-Orders are rejected unless `approved_preview_id` is present and approved for `session_id`.
-
-## 5) Tests
+## 6) Tests
 
 Run:
 
