@@ -19,6 +19,10 @@ type UploadedItem = {
   error?: string;
 };
 
+function svgThumb(svg: string) {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 const products: Product[] = [
   {
     id: "wooden_plaque",
@@ -26,7 +30,7 @@ const products: Product[] = [
     description: "UV printed on wood with a warm handcrafted look.",
     size: "13 in x 16.5 in",
     material: "wood",
-    mockup: "https://images.unsplash.com/photo-1517309230475-6736d926b979?auto=format&fit=crop&w=1200&q=80"
+    mockup: svgThumb(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 380'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#f0e3d3'/><stop offset='100%' stop-color='#d5bea4'/></linearGradient><linearGradient id='lake' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#f19f57'/><stop offset='100%' stop-color='#314761'/></linearGradient></defs><rect width='600' height='380' fill='url(#bg)'/><rect x='150' y='40' width='300' height='300' rx='12' fill='#6b472d'/><rect x='165' y='55' width='270' height='270' rx='8' fill='url(#lake)'/><circle cx='300' cy='150' r='38' fill='#ffc88a' opacity='0.85'/><rect x='165' y='190' width='270' height='135' fill='#1c2a3d' opacity='0.65'/><text x='300' y='242' text-anchor='middle' fill='#f4dfbf' font-size='22' font-family='Georgia'>In Loving Memory</text><text x='300' y='275' text-anchor='middle' fill='#eecb93' font-size='28' font-family='Georgia'>Memorial Plaque</text><rect x='250' y='336' width='100' height='12' rx='6' fill='#2f261d'/></svg>`)
   },
   {
     id: "glass_plaque",
@@ -34,7 +38,7 @@ const products: Product[] = [
     description: "UV printed on glass/acrylic-style plaque with polished edges.",
     size: "13 in x 16.5 in",
     material: "glass",
-    mockup: "https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=1200&q=80"
+    mockup: svgThumb(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 380'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#f6f6f4'/><stop offset='100%' stop-color='#e7e9eb'/></linearGradient></defs><rect width='600' height='380' fill='url(#bg)'/><rect x='170' y='72' width='260' height='190' rx='12' fill='rgba(255,255,255,0.35)' stroke='rgba(255,255,255,0.85)' stroke-width='4'/><rect x='200' y='102' width='88' height='132' fill='#dfd8cf'/><rect x='300' y='102' width='105' height='132' fill='rgba(255,255,255,0.4)'/><text x='352' y='142' text-anchor='middle' fill='#232323' font-size='18' font-family='Georgia'>Because love</text><text x='352' y='169' text-anchor='middle' fill='#232323' font-size='16' font-family='Georgia'>is in heaven</text><rect x='195' y='262' width='210' height='30' rx='3' fill='#b08357'/><rect x='130' y='300' width='340' height='20' fill='#f0f0ee'/></svg>`)
   },
   {
     id: "glass_candle",
@@ -42,7 +46,7 @@ const products: Product[] = [
     description: "UV printed wrap for a calm memorial candle presentation.",
     size: "8 in x 4 in wrap",
     material: "glass candle",
-    mockup: "https://images.unsplash.com/photo-1603006905393-c7be438f11ad?auto=format&fit=crop&w=1200&q=80"
+    mockup: svgThumb(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 380'><defs><linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#efe1cf'/><stop offset='100%' stop-color='#d9c3a8'/></linearGradient><linearGradient id='jar' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='rgba(255,255,255,0.45)'/><stop offset='100%' stop-color='rgba(214,222,228,0.5)'/></linearGradient></defs><rect width='600' height='380' fill='url(#bg)'/><ellipse cx='300' cy='337' rx='95' ry='18' fill='rgba(0,0,0,0.16)'/><rect x='220' y='72' width='160' height='250' rx='68' fill='url(#jar)' stroke='rgba(255,255,255,0.7)' stroke-width='3'/><ellipse cx='300' cy='104' rx='63' ry='18' fill='rgba(255,255,255,0.4)'/><rect x='245' y='140' width='110' height='150' rx='8' fill='rgba(238,214,190,0.88)'/><ellipse cx='300' cy='140' rx='33' ry='12' fill='#ffe8b8'/><path d='M300 78 C288 95,288 103,300 112 C312 103,312 95,300 78' fill='#f4ab4e'/><text x='300' y='196' text-anchor='middle' fill='#6f5241' font-size='22' font-family='Georgia'>In Loving Memory</text><text x='300' y='226' text-anchor='middle' fill='#5f4538' font-size='16' font-family='Georgia'>Memorial Candle</text></svg>`)
   }
 ];
 
