@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminLoginForm } from "@/app/admin/AdminLoginForm";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -18,34 +19,7 @@ export default async function AdminPage() {
       <main>
         <div className="card" style={{ maxWidth: 420, margin: "40px auto" }}>
           <h1>Admin Login</h1>
-          <form action="/api/admin/login" method="post" onSubmit="">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" required />
-            <button type="submit">Login</button>
-          </form>
-          <p style={{ fontSize: 14, opacity: 0.75 }}>
-            Submit sends JSON through a quick script in the browser console for now.
-          </p>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-const form = document.currentScript?.previousElementSibling;
-if (form) {
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const password = form.password.value;
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
-    if (res.ok) window.location.reload();
-    else alert('Invalid password');
-  });
-}
-`
-            }}
-          />
+          <AdminLoginForm />
         </div>
       </main>
     );
