@@ -15,6 +15,7 @@ type UploadedItem = {
   file: File;
   status: "queued" | "uploading" | "uploaded" | "error";
   fileUrl?: string;
+  filePath?: string;
   error?: string;
 };
 
@@ -107,8 +108,17 @@ export default function StudioPage() {
     setUploads((current) => [...current, ...next]);
   }
 
-  function removeUpload(index: number) {
+  async function removeUpload(index: number) {
+    const target = uploads[index];
     setUploads((current) => current.filter((_, i) => i !== index));
+
+    if (target?.status === "uploaded") {
+      await fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, filePath: target.filePath, fileUrl: target.fileUrl })
+      });
+    }
   }
 
   async function uploadAllPhotos() {
@@ -136,7 +146,9 @@ export default function StudioPage() {
         if (!res.ok) throw new Error(json.error || "Upload failed");
 
         setUploads((current) =>
-          current.map((entry, i) => (i === index ? { ...entry, status: "uploaded", fileUrl: json.fileUrl } : entry))
+          current.map((entry, i) =>
+            i === index ? { ...entry, status: "uploaded", fileUrl: json.fileUrl, filePath: json.path } : entry
+          )
         );
       } catch (error) {
         setUploads((current) =>
@@ -162,6 +174,11 @@ export default function StudioPage() {
     }
 
     await uploadAllPhotos();
+
+    if (uploads.some((item) => item.status === "error")) {
+      setPreviewError("Please fix or remove failed uploads before generating a preview.");
+      return;
+    }
 
     try {
       setIsGenerating(true);
