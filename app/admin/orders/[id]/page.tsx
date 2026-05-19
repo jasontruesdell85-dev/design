@@ -1,11 +1,17 @@
 import { notFound, redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { env } from "@/lib/env";
 
 async function getOrder(id: string) {
   const { data: order } = await supabaseAdmin.from("orders").select("*").eq("id", id).single();
   const { data: uploads } = await supabaseAdmin.from("uploaded_files").select("*").eq("order_id", id);
-  return { order, uploads: uploads ?? [] };
+  const { data: previews } = await supabaseAdmin
+    .from("generated_previews")
+    .select("*")
+    .eq("order_id", id)
+    .order("created_at", { ascending: false });
+  return { order, uploads: uploads ?? [], previews: previews ?? [] };
 }
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
@@ -13,7 +19,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
     redirect("/admin");
   }
 
-  const { order, uploads } = await getOrder(params.id);
+  const { order, uploads, previews } = await getOrder(params.id);
   if (!order) notFound();
 
   async function updateOrder(formData: FormData) {
@@ -26,6 +32,50 @@ export default async function OrderDetailPage({ params }: { params: { id: string
       .from("orders")
       .update({ status, internal_notes: internalNotes })
       .eq("id", params.id);
+  }
+
+  async function approvePreview(formData: FormData) {
+    "use server";
+
+    const previewId = String(formData.get("preview_id") ?? "");
+    if (!previewId) return;
+
+    const { data: preview } = await supabaseAdmin
+      .from("generated_previews")
+      .select("*")
+      .eq("id", previewId)
+      .single();
+
+    if (!preview?.artwork_url || !preview?.mockup_url) return;
+
+    const [artworkRes, mockupRes] = await Promise.all([fetch(preview.artwork_url), fetch(preview.mockup_url)]);
+    if (!artworkRes.ok || !mockupRes.ok) return;
+
+    const [artworkBuffer, mockupBuffer] = await Promise.all([artworkRes.arrayBuffer(), mockupRes.arrayBuffer()]);
+
+    const approvedArtworkPath = `orders/${params.id}/approved-artwork.png`;
+    const approvedMockupPath = `orders/${params.id}/mockup.png`;
+
+    await Promise.all([
+      supabaseAdmin.storage
+        .from(env.storageBucketName)
+        .upload(approvedArtworkPath, Buffer.from(artworkBuffer), { contentType: "image/png", upsert: true }),
+      supabaseAdmin.storage
+        .from(env.storageBucketName)
+        .upload(approvedMockupPath, Buffer.from(mockupBuffer), { contentType: "image/png", upsert: true })
+    ]);
+
+    const approvedArtworkUrl = supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(approvedArtworkPath).data.publicUrl;
+    const approvedMockupUrl = supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(approvedMockupPath).data.publicUrl;
+
+    await Promise.all([
+      supabaseAdmin.from("generated_previews").update({ is_approved: false }).eq("order_id", params.id),
+      supabaseAdmin.from("generated_previews").update({ is_approved: true }).eq("id", previewId),
+      supabaseAdmin
+        .from("orders")
+        .update({ approved_artwork_url: approvedArtworkUrl, approved_mockup_url: approvedMockupUrl })
+        .eq("id", params.id)
+    ]);
   }
 
   return (
@@ -67,6 +117,23 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         <h2>Approved Artwork</h2>
         <p>{order.approved_artwork_url ? <a href={order.approved_artwork_url}>Download approved artwork PNG</a> : "Not set"}</p>
         <p>{order.approved_mockup_url ? <a href={order.approved_mockup_url}>Download mockup PNG</a> : "Not set"}</p>
+
+        <h2>Generated Previews</h2>
+        {previews.length === 0 ? <p>No previews linked to this order yet.</p> : null}
+        <ul>
+          {previews.map((preview) => (
+            <li key={preview.id} style={{ marginBottom: 14 }}>
+              <a href={preview.artwork_url}>Artwork</a> | <a href={preview.mockup_url}>Mockup</a>
+              {preview.is_approved ? " (Approved)" : ""}
+              {!preview.is_approved ? (
+                <form action={approvePreview} style={{ marginTop: 6 }}>
+                  <input type="hidden" name="preview_id" value={preview.id} />
+                  <button type="submit" className="secondary">Approve this preview</button>
+                </form>
+              ) : null}
+            </li>
+          ))}
+        </ul>
 
         <h2>Uploaded Photos</h2>
         <ul>
