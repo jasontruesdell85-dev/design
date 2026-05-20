@@ -20,6 +20,10 @@ type GenerateRequest = {
   religiousOrSpiritualElements?: string;
   hobbiesInterestsPlaces?: string;
   generalInstructions?: string;
+  typography?: {
+    nameFont?: string;
+    bodyFont?: string;
+  };
 };
 
 function extractStoragePathFromFileUrl(fileUrl: string, bucketName: string) {
@@ -114,7 +118,11 @@ export async function POST(request: Request) {
       orientation,
       deceasedName: cleanText(body.deceasedName, 120),
       memorialDates: cleanText(body.memorialDates, 80),
-      quoteOrMessage: cleanText(body.quoteOrMessage, 300)
+      quoteOrMessage: cleanText(body.quoteOrMessage, 300),
+      typography: {
+        nameFont: cleanText(body.typography?.nameFont, 120),
+        bodyFont: cleanText(body.typography?.bodyFont, 120)
+      }
     });
 
     const ts = Date.now();

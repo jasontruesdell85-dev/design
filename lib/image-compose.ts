@@ -7,15 +7,73 @@ type OverlayInput = {
   deceasedName?: string;
   memorialDates?: string;
   quoteOrMessage?: string;
+  typography?: {
+    nameFont?: string;
+    bodyFont?: string;
+  };
 };
+
+function esc(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function fitFontSize(text: string, maxChars: number, maxSize: number, minSize: number) {
+  if (!text) return minSize;
+  const ratio = Math.min(1, maxChars / text.length);
+  return Math.max(minSize, Math.floor(maxSize * ratio));
+}
 
 export async function composeArtwork(base: Buffer, input: OverlayInput) {
   const spec = getProductSpec(input.productId);
   const portrait = (input.orientation || spec.defaultOrientation) === "portrait";
   const width = portrait ? spec.width : spec.height;
   const height = portrait ? spec.height : spec.width;
+  const resized = await sharp(base).resize(width, height, { fit: "cover", position: "center" }).png().toBuffer();
 
-  return sharp(base).resize(width, height, { fit: "cover", position: "center" }).png().toBuffer();
+  const name = esc((input.deceasedName || "").trim());
+  const dates = esc((input.memorialDates || "").trim());
+  const rawQuote = (input.quoteOrMessage || "").trim();
+  const quote = esc(rawQuote.length > 42 ? `${rawQuote.slice(0, 39)}...` : rawQuote);
+
+  const nameFont = input.typography?.nameFont || "'Brush Script MT', 'Lucida Handwriting', cursive";
+  const bodyFont = input.typography?.bodyFont || "Arial, Helvetica, sans-serif";
+
+  const nameSize = fitFontSize(name, 18, Math.floor(width * 0.09), Math.floor(width * 0.055));
+  const datesSize = fitFontSize(dates, 20, Math.floor(width * 0.05), Math.floor(width * 0.035));
+  const quoteSize = fitFontSize(quote, 28, Math.floor(width * 0.05), Math.floor(width * 0.032));
+
+  const bottomPad = Math.floor(height * 0.08);
+  const leftPad = Math.floor(width * 0.08);
+  const textWidth = width - leftPad * 2;
+  const footerTop = Math.floor(height * 0.66);
+
+  const nameY = footerTop + Math.floor(height * 0.11);
+  const datesY = nameY + Math.floor(height * 0.065);
+  const quoteY = datesY + Math.floor(height * 0.06);
+  const maxQuoteY = height - bottomPad;
+  const safeQuoteY = Math.min(quoteY, maxQuoteY);
+
+  const overlaySvg = `
+  <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(10,12,18,0.00)" />
+        <stop offset="40%" stop-color="rgba(10,12,18,0.35)" />
+        <stop offset="100%" stop-color="rgba(10,12,18,0.68)" />
+      </linearGradient>
+    </defs>
+    <rect x="0" y="${Math.floor(height * 0.58)}" width="${width}" height="${Math.ceil(height * 0.42)}" fill="url(#fade)" />
+    ${name ? `<text x="${width / 2}" y="${nameY}" text-anchor="middle" fill="#f4ead7" font-family="${nameFont}" font-size="${nameSize}" letter-spacing="1.2">${name}</text>` : ""}
+    ${dates ? `<text x="${width / 2}" y="${datesY}" text-anchor="middle" fill="#efe3cf" font-family="${bodyFont}" font-size="${datesSize}" letter-spacing="1.0">${dates}</text>` : ""}
+    ${quote ? `<text x="${width / 2}" y="${safeQuoteY}" text-anchor="middle" fill="#eadcc4" font-family="${bodyFont}" font-size="${quoteSize}" letter-spacing="0.8">${quote}</text>` : ""}
+  </svg>`;
+
+  return sharp(resized).composite([{ input: Buffer.from(overlaySvg), top: 0, left: 0 }]).png().toBuffer();
 }
 
 export async function composeMockup(artwork: Buffer, productId: string) {
