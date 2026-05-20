@@ -334,7 +334,12 @@ export default function StudioPage() {
           <div className="grid products">
             {products.map((product) => (
               <article key={product.id} className={selectedProductId === product.id ? "product-card selected" : "product-card"}>
-                <img src={product.mockup} alt={product.name} />
+                <img
+                  src={product.mockup}
+                  alt={product.name}
+                  onClick={() => setZoomedImageUrl(product.mockup)}
+                  className="clickable-image"
+                />
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
                 <p className="meta">Printable area: {product.size}</p>
