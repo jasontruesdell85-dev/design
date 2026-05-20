@@ -22,6 +22,14 @@ type GenerateRequest = {
   generalInstructions?: string;
 };
 
+function extractStoragePathFromFileUrl(fileUrl: string, bucketName: string) {
+  const marker = `/${bucketName}/`;
+  const idx = fileUrl.indexOf(marker);
+  if (idx < 0) return null;
+  const raw = fileUrl.slice(idx + marker.length);
+  return raw.split("?")[0] || null;
+}
+
 export async function POST(request: Request) {
   try {
     if (!env.openAiApiKey) {
@@ -37,6 +45,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid sessionId and productId are required" }, { status: 400 });
     }
 
+    const { data: latestUploads } = await supabaseAdmin
+      .from("uploaded_files")
+      .select("file_url, created_at")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    let referenceImageUrl: string | null = latestUploads?.[0]?.file_url ?? null;
+    if (referenceImageUrl) {
+      const storagePath = extractStoragePathFromFileUrl(referenceImageUrl, env.storageBucketName);
+      if (storagePath) {
+        const signed = await supabaseAdmin.storage.from(env.storageBucketName).createSignedUrl(storagePath, 60 * 15);
+        if (signed.data?.signedUrl) referenceImageUrl = signed.data.signedUrl;
+      }
+    }
+
     const prompt = buildMemorialPrompt({
       productName: cleanText(body.productName, 80),
       material: cleanText(body.material, 80),
@@ -50,13 +74,17 @@ export async function POST(request: Request) {
       hobbiesInterestsPlaces: cleanText(body.hobbiesInterestsPlaces, 600),
       generalInstructions: cleanText(body.generalInstructions, 900)
     });
+    const promptWithPhotoUse = referenceImageUrl
+      ? `${prompt}\nUse the provided reference photo as the subject. Preserve the same person's facial features and overall likeness. Do not invent or substitute a different person.`
+      : prompt;
 
     const openai = new OpenAI({ apiKey: env.openAiApiKey });
     const response = await openai.images.generate({
       model: "gpt-image-1",
-      prompt,
+      prompt: promptWithPhotoUse,
+      ...(referenceImageUrl ? { image: [referenceImageUrl] } : {}),
       size: orientation === "landscape" ? "1536x1024" : "1024x1536"
-    });
+    } as any);
 
     const b64 = response.data?.[0]?.b64_json;
     if (!b64) {
@@ -104,7 +132,7 @@ export async function POST(request: Request) {
       .insert({
         session_id: sessionId,
         product_id: productId,
-        prompt_used: prompt,
+        prompt_used: promptWithPhotoUse,
         artwork_url: artworkUrl,
         mockup_url: mockupUrl,
         is_approved: false
@@ -116,7 +144,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: previewError?.message ?? "Failed to save preview" }, { status: 500 });
     }
 
-    return NextResponse.json({ previewId: preview.id, prompt, artworkUrl, mockupUrl });
+    return NextResponse.json({ previewId: preview.id, prompt: promptWithPhotoUse, artworkUrl, mockupUrl });
   } catch (error: unknown) {
     const fallback = "Preview generation failed";
     if (error instanceof Error) {
