@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Product = {
   id: string;
@@ -13,6 +13,7 @@ type Product = {
 
 type UploadedItem = {
   file: File;
+  previewUrl: string;
   status: "queued" | "uploading" | "uploaded" | "error";
   fileUrl?: string;
   filePath?: string;
@@ -85,24 +86,34 @@ export default function StudioPage() {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [zoomedImageUrl, setZoomedImageUrl] = useState("");
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId),
     [selectedProductId]
   );
 
+  useEffect(() => {
+    function onEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setZoomedImageUrl("");
+    }
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, []);
+
   function onFilesPicked(fileList: FileList | null) {
     if (!fileList) return;
 
     const next = Array.from(fileList).map((file) => {
+      const previewUrl = URL.createObjectURL(file);
       const allowed = ["image/jpeg", "image/png", "image/heic", "image/heif"];
       if (!allowed.includes(file.type)) {
-        return { file, status: "error" as const, error: "Only JPG, PNG, or HEIC files are supported." };
+        return { file, previewUrl, status: "error" as const, error: "Only JPG, PNG, or HEIC files are supported." };
       }
       if (file.size > 12 * 1024 * 1024) {
-        return { file, status: "error" as const, error: "File is too large. Keep each photo under 12MB." };
+        return { file, previewUrl, status: "error" as const, error: "File is too large. Keep each photo under 12MB." };
       }
-      return { file, status: "queued" as const };
+      return { file, previewUrl, status: "queued" as const };
     });
 
     setUploads((current) => [...current, ...next]);
@@ -111,6 +122,7 @@ export default function StudioPage() {
   async function removeUpload(index: number) {
     const target = uploads[index];
     setUploads((current) => current.filter((_, i) => i !== index));
+    if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
 
     if (target?.status === "uploaded") {
       await fetch("/api/upload", {
@@ -383,7 +395,12 @@ export default function StudioPage() {
           <div className="thumb-row">
             {uploads.map((item, index) => (
               <div className="thumb" key={`${item.file.name}-${index}`}>
-                <img src={URL.createObjectURL(item.file)} alt={item.file.name} />
+                <img
+                  src={item.previewUrl}
+                  alt={item.file.name}
+                  onClick={() => setZoomedImageUrl(item.previewUrl)}
+                  className="clickable-image"
+                />
                 <small>{item.file.name}</small>
                 <small>{item.status}</small>
                 {item.error ? <small className="error">{item.error}</small> : null}
@@ -492,6 +509,17 @@ export default function StudioPage() {
           <p><strong>Product:</strong> {selectedProduct?.name}</p>
           <p><strong>Email:</strong> {customerEmail}</p>
         </section>
+      ) : null}
+
+      {zoomedImageUrl ? (
+        <div className="image-modal-backdrop" onClick={() => setZoomedImageUrl("")}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="image-modal-close" onClick={() => setZoomedImageUrl("")}>
+              Close
+            </button>
+            <img src={zoomedImageUrl} alt="Full-size upload preview" className="image-modal-img" />
+          </div>
+        </div>
       ) : null}
     </main>
   );
