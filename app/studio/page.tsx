@@ -39,7 +39,7 @@ const products: Product[] = [
     id: "wooden_plaque",
     name: "Wooden Plaque",
     description: "UV printed on wood with a warm handcrafted look.",
-    size: "13 in x 16.5 in",
+    size: "13 x 16.5 in",
     material: "wood",
     mockup: "/products/wooden.png"
   },
@@ -47,7 +47,7 @@ const products: Product[] = [
     id: "glass_plaque",
     name: "Glass Plaque",
     description: "UV printed on glass/acrylic-style plaque with polished edges.",
-    size: "13 in x 16.5 in",
+    size: "13 x 16.5 in",
     material: "glass",
     mockup: "/products/glass.jpg"
   },
@@ -55,10 +55,17 @@ const products: Product[] = [
     id: "glass_candle",
     name: "Glass Candle",
     description: "UV printed wrap for a calm memorial candle presentation.",
-    size: "8 in x 4 in wrap",
+    size: "8 x 4 in wrap",
     material: "glass candle",
     mockup: "/products/candle.png"
   }
+];
+
+const steps = [
+  { id: 1, title: "Product", subtitle: "Choose the piece" },
+  { id: 2, title: "Person", subtitle: "Who it honors" },
+  { id: 3, title: "Story", subtitle: "Style & memories" },
+  { id: 4, title: "Review", subtitle: "Preview & submit" }
 ];
 
 export default function StudioPage() {
@@ -68,7 +75,8 @@ export default function StudioPage() {
   const [orientation, setOrientation] = useState("portrait");
 
   const [deceasedName, setDeceasedName] = useState("");
-  const [memorialDates, setMemorialDates] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [passingDate, setPassingDate] = useState("");
   const [themeStyle, setThemeStyle] = useState("");
   const [colors, setColors] = useState("");
   const [spiritual, setSpiritual] = useState("");
@@ -83,7 +91,6 @@ export default function StudioPage() {
   const [previewError, setPreviewError] = useState("");
   const [previewId, setPreviewId] = useState("");
   const [artworkUrl, setArtworkUrl] = useState("");
-  const [mockupUrl, setMockupUrl] = useState("");
   const [approvedPreviewId, setApprovedPreviewId] = useState("");
 
   const [customerName, setCustomerName] = useState("");
@@ -94,8 +101,7 @@ export default function StudioPage() {
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("");
-  const [customerNotes, setCustomerNotes] = useState("");
+  const [country, setCountry] = useState("United States");
 
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,6 +120,14 @@ export default function StudioPage() {
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
   }, []);
+
+  function nextStep() {
+    setStep((current) => Math.min(4, current + 1));
+  }
+
+  function prevStep() {
+    setStep((current) => Math.max(1, current - 1));
+  }
 
   function onFilesPicked(fileList: FileList | null) {
     if (!fileList) return;
@@ -196,7 +210,7 @@ export default function StudioPage() {
       return;
     }
     if (!deceasedName.trim() || !hobbies.trim() || !generalInstructions.trim()) {
-      setPreviewError("Please add name, theme details, and general instructions before generating.");
+      setPreviewError("Please add honoring details and story notes before generating.");
       return;
     }
 
@@ -209,6 +223,8 @@ export default function StudioPage() {
 
     try {
       setIsGenerating(true);
+      const dates = [birthDate, passingDate].filter(Boolean).join(" - ");
+
       const res = await fetch("/api/generate-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -219,7 +235,7 @@ export default function StudioPage() {
           material: selectedProduct.material,
           orientation,
           deceasedName,
-          memorialDates,
+          memorialDates: dates,
           quoteOrMessage: quote,
           themeStyle,
           colors,
@@ -234,9 +250,7 @@ export default function StudioPage() {
 
       setPreviewId(json.previewId);
       setArtworkUrl(json.artworkUrl);
-      setMockupUrl(json.mockupUrl);
       setApprovedPreviewId("");
-      setStep(3);
     } catch (error) {
       setPreviewError(error instanceof Error ? error.message : "Preview generation failed. Please retry.");
     } finally {
@@ -257,17 +271,18 @@ export default function StudioPage() {
 
     if (!res.ok) {
       setPreviewError(json.error || "Could not approve preview");
-      return;
+      return null;
     }
 
     setApprovedPreviewId(json.previewId);
-    setStep(4);
+    return json.previewId as string;
   }
 
-  async function submitOrder() {
+  async function submitOrder(approvedIdOverride?: string) {
     setSubmitError("");
+    const finalApprovedId = approvedIdOverride || approvedPreviewId;
 
-    if (!approvedPreviewId) {
+    if (!finalApprovedId) {
       setSubmitError("Please approve a preview before submitting your request.");
       return;
     }
@@ -290,12 +305,12 @@ export default function StudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: sessionId,
-          approved_preview_id: approvedPreviewId,
+          approved_preview_id: finalApprovedId,
           product_id: selectedProduct.id,
           product_name: selectedProduct.name,
           orientation,
           deceased_name: deceasedName,
-          memorial_dates: memorialDates,
+          memorial_dates: [birthDate, passingDate].filter(Boolean).join(" - "),
           theme_style: themeStyle,
           colors,
           religious_or_spiritual_elements: spiritual,
@@ -311,7 +326,7 @@ export default function StudioPage() {
           shipping_region: region,
           shipping_postal_code: postalCode,
           shipping_country: country,
-          customer_notes: customerNotes
+          customer_notes: ""
         })
       });
 
@@ -329,196 +344,283 @@ export default function StudioPage() {
 
   return (
     <main className="studio-shell">
-      <section className="hero card">
-        <p className="eyebrow">AI Memorial Product Studio</p>
-        <h1>Create a Memorial Design with Care</h1>
-        <p>
-          Build a respectful custom preview in a few guided steps. We will review everything with you before production.
-        </p>
-      </section>
+      <header className="topbar">
+        <div className="brand">Eternal Prints</div>
+        <div className="subbrand">MEMORIAL DESIGN</div>
+      </header>
 
-      <section className="step-rail card">
-        <div className={step >= 1 ? "active" : ""}>1. Choose Product</div>
-        <div className={step >= 2 ? "active" : ""}>2. Share Details</div>
-        <div className={step >= 3 ? "active" : ""}>3. Preview Design</div>
-        <div className={step >= 4 ? "active" : ""}>4. Submit Request</div>
-      </section>
-
-      {step >= 1 ? (
-        <section className="card">
-          <h2>Choose Product</h2>
-          <div className="grid products">
-            {products.map((product) => (
-              <article key={product.id} className={selectedProductId === product.id ? "product-card selected" : "product-card"}>
-                <img
-                  src={product.mockup}
-                  alt={product.name}
-                  onClick={() => setZoomedImageUrl(product.mockup)}
-                  className="clickable-image"
-                />
-                <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <p className="meta">Printable area: {product.size}</p>
-                <button type="button" onClick={() => { setSelectedProductId(product.id); if (step < 2) setStep(2); }}>
-                  {selectedProductId === product.id ? "Selected" : "Select"}
-                </button>
-              </article>
+      {step <= 4 ? (
+        <section className="journey card">
+          <div className="journey-head">
+            <div>
+              <h1>Create a memorial design with care</h1>
+              <p>A few guided steps. We review every order with you before production.</p>
+            </div>
+            <p className="step-count">Step {step} of 4</p>
+          </div>
+          <div className="progress-track">
+            <span style={{ width: `${((step - 1) / 3) * 100}%` }} />
+          </div>
+          <div className="step-pill-row">
+            {steps.map((item) => (
+              <button type="button" key={item.id} className={step >= item.id ? "step-pill active" : "step-pill"} onClick={() => setStep(item.id)}>
+                <span className="dot">{step > item.id ? "✓" : item.id}</span>
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.subtitle}</small>
+                </span>
+              </button>
             ))}
           </div>
         </section>
       ) : null}
 
-      {step >= 2 ? (
-        <section className="card">
-          <h2>Share Memorial Details</h2>
-          <div className="grid">
-            <div>
-              <label>Name of Person Remembered *</label>
-              <input value={deceasedName} onChange={(e) => setDeceasedName(e.target.value)} />
-            </div>
-            <div>
-              <label>Dates (Optional)</label>
-              <input value={memorialDates} onChange={(e) => setMemorialDates(e.target.value)} />
-            </div>
-            <div>
-              <label>Orientation</label>
-              <select value={orientation} onChange={(e) => setOrientation(e.target.value)}>
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-              </select>
-            </div>
-            <div>
-              <label>Preferred Theme or Style</label>
-              <input value={themeStyle} onChange={(e) => setThemeStyle(e.target.value)} />
-            </div>
-            <div>
-              <label>Colors (Optional)</label>
-              <input value={colors} onChange={(e) => setColors(e.target.value)} />
-            </div>
-            <div>
-              <label>Religious or Spiritual Elements (Optional)</label>
-              <input value={spiritual} onChange={(e) => setSpiritual(e.target.value)} />
-            </div>
-          </div>
+      {step <= 4 ? (
+        <section className="studio-layout">
+          <section className="main-panel card">
+            {step === 1 ? (
+              <>
+                <p className="eyebrow">Step 1</p>
+                <h2>Choose your product</h2>
+                <p>Each piece is UV printed and finished by hand. You can change this any time.</p>
+                <div className="grid products">
+                  {products.map((product) => (
+                    <article key={product.id} className={selectedProductId === product.id ? "product-card selected" : "product-card"}>
+                      <img
+                        src={product.mockup}
+                        alt={product.name}
+                        onClick={() => setZoomedImageUrl(product.mockup)}
+                        className="clickable-image"
+                      />
+                      <h3>{product.name}</h3>
+                      <p>{product.description}</p>
+                      <p className="meta">Printable area: {product.size}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProductId(product.id);
+                        }}
+                      >
+                        {selectedProductId === product.id ? "Selected" : "Select"}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                <div className="panel-actions">
+                  <span />
+                  <button type="button" onClick={nextStep} disabled={!selectedProductId}>Next Step</button>
+                </div>
+              </>
+            ) : null}
 
-          <label>Hobbies, Interests, Places, or Objects *</label>
-          <textarea rows={3} value={hobbies} onChange={(e) => setHobbies(e.target.value)} />
+            {step === 2 ? (
+              <>
+                <p className="eyebrow">Step 2</p>
+                <h2>Who are we honoring?</h2>
+                <p>Just the basics. Only the name is required.</p>
+                <div className="grid two">
+                  <div>
+                    <label>Full name *</label>
+                    <input value={deceasedName} onChange={(e) => setDeceasedName(e.target.value)} placeholder="e.g. Mary Elizabeth Peterson" />
+                  </div>
+                  <div>
+                    <label>Orientation</label>
+                    <select value={orientation} onChange={(e) => setOrientation(e.target.value)}>
+                      <option value="portrait">Portrait</option>
+                      <option value="landscape">Landscape</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Date of birth (optional)</label>
+                    <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Date of passing (optional)</label>
+                    <input type="date" value={passingDate} onChange={(e) => setPassingDate(e.target.value)} />
+                  </div>
+                </div>
+                <div className="panel-actions">
+                  <button type="button" className="ghost" onClick={prevStep}>Back</button>
+                  <button type="button" onClick={nextStep} disabled={!deceasedName.trim()}>Next Step</button>
+                </div>
+              </>
+            ) : null}
 
-          <label>Quote, Poem, Scripture, or Short Message (Optional)</label>
-          <textarea rows={2} value={quote} onChange={(e) => setQuote(e.target.value)} />
+            {step === 3 ? (
+              <>
+                <p className="eyebrow">Step 3</p>
+                <h2>Tell us their story</h2>
+                <p>The more we know, the more personal the design will feel.</p>
+                <div className="grid two">
+                  <div>
+                    <label>Preferred theme or style</label>
+                    <input value={themeStyle} onChange={(e) => setThemeStyle(e.target.value)} placeholder="e.g. rustic, classical, modern" />
+                  </div>
+                  <div>
+                    <label>Colors</label>
+                    <input value={colors} onChange={(e) => setColors(e.target.value)} placeholder="e.g. sage green, warm cream" />
+                  </div>
+                </div>
+                <label>Religious or spiritual elements</label>
+                <input value={spiritual} onChange={(e) => setSpiritual(e.target.value)} placeholder="e.g. cross, dove, scripture reference" />
 
-          <label>General Instructions *</label>
-          <p className="helper">Tell us what you would like the design to feel like. For example: Dad loved fishing at sunset, pine trees, cardinals, and quiet mornings at the lake. We want something warm, peaceful, and rustic.</p>
-          <textarea rows={5} value={generalInstructions} onChange={(e) => setGeneralInstructions(e.target.value)} />
+                <label>Hobbies, interests, places, or objects *</label>
+                <textarea rows={3} value={hobbies} onChange={(e) => setHobbies(e.target.value)} placeholder="e.g. fishing at sunset, pine trees, cardinals" />
 
-          <label>Photo Uploads</label>
-          <input type="file" accept="image/png,image/jpeg,image/heic,image/heif" multiple onChange={(e) => onFilesPicked(e.target.files)} />
-          <div className="thumb-row">
-            {uploads.map((item, index) => (
-              <div className="thumb" key={`${item.file.name}-${index}`}>
-                <img
-                  src={item.previewUrl}
-                  alt={item.file.name}
-                  onClick={() => setZoomedImageUrl(item.previewUrl)}
-                  className="clickable-image"
-                />
-                <small>{item.file.name}</small>
-                <small>{item.status}</small>
-                {item.error ? <small className="error">{item.error}</small> : null}
-                <button type="button" className="secondary" onClick={() => removeUpload(index)}>Remove</button>
+                <label>Quote, poem, scripture, or short message</label>
+                <textarea rows={2} value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="e.g. Forever in our hearts" />
+
+                <label>General instructions *</label>
+                <textarea rows={3} value={generalInstructions} onChange={(e) => setGeneralInstructions(e.target.value)} placeholder="Tell us how you want the design to feel." />
+                <p className="helper">Tell us what you want the design to feel like.</p>
+
+                <label>Photos (optional)</label>
+                <input type="file" accept="image/png,image/jpeg,image/heic,image/heif" multiple onChange={(e) => onFilesPicked(e.target.files)} />
+                <div className="thumb-row">
+                  {uploads.map((item, index) => (
+                    <div className="thumb" key={`${item.file.name}-${index}`}>
+                      <img
+                        src={item.previewUrl}
+                        alt={item.file.name}
+                        onClick={() => setZoomedImageUrl(item.previewUrl)}
+                        className="clickable-image"
+                      />
+                      <small>{item.file.name}</small>
+                      <small>{item.status}</small>
+                      {item.error ? <small className="error">{item.error}</small> : null}
+                      <button type="button" className="ghost" onClick={() => removeUpload(index)}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+                {uploadMessage ? <p>{uploadMessage}</p> : null}
+
+                <div className="panel-actions">
+                  <button type="button" className="ghost" onClick={prevStep}>Back</button>
+                  <button type="button" onClick={nextStep} disabled={!hobbies.trim() || !generalInstructions.trim()}>Next Step</button>
+                </div>
+              </>
+            ) : null}
+
+            {step === 4 ? (
+              <>
+                <p className="eyebrow">Step 4</p>
+                <h2>Review and submit</h2>
+                <p>Preview the design, then send it to our designers.</p>
+
+                {artworkUrl ? (
+                  <img src={artworkUrl} alt="Memorial artwork preview" className="preview-main" />
+                ) : (
+                  <div className="empty-preview">Generate a preview to continue.</div>
+                )}
+
+                <div className="review-card">
+                  <div>
+                    <h3>{selectedProduct?.name || "No product selected"}</h3>
+                    <p className="meta">Printable area: {selectedProduct?.size || "-"}</p>
+                  </div>
+                  <button type="button" className="ghost" onClick={generatePreview} disabled={isGenerating}>
+                    {isGenerating ? "Generating..." : "Regenerate Preview"}
+                  </button>
+                </div>
+
+                <h3>Shipping details</h3>
+                <div className="grid two">
+                  <div>
+                    <label>Full name *</label>
+                    <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Email *</label>
+                    <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Phone *</label>
+                    <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Address line 1 *</label>
+                    <input value={line1} onChange={(e) => setLine1(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Address line 2</label>
+                    <input value={line2} onChange={(e) => setLine2(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>City *</label>
+                    <input value={city} onChange={(e) => setCity(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>State / Region *</label>
+                    <input value={region} onChange={(e) => setRegion(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>ZIP / Postal code *</label>
+                    <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Country *</label>
+                    <input value={country} onChange={(e) => setCountry(e.target.value)} />
+                  </div>
+                </div>
+
+                {previewError ? <p className="error">{previewError}</p> : null}
+                {submitError ? <p className="error">{submitError}</p> : null}
+
+                <div className="panel-actions">
+                  <button type="button" className="ghost" onClick={prevStep}>Back</button>
+                  <div className="split-actions">
+                    <button type="button" className="ghost" onClick={generatePreview} disabled={isGenerating}>
+                      {isGenerating ? "Generating..." : "Generate Preview"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!artworkUrl) {
+                          await generatePreview();
+                          return;
+                        }
+                        const approvedId = await approvePreview();
+                        if (!approvedId) return;
+                        await submitOrder(approvedId);
+                      }}
+                      disabled={isSubmitting || !artworkUrl}
+                    >
+                      {isSubmitting ? "Submitting..." : "Approve and Submit"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </section>
+
+          <aside className="side-panel card">
+            <p className="eyebrow">Your Design</p>
+            {selectedProduct ? (
+              <div className="chosen-product">
+                <img src={selectedProduct.mockup} alt={selectedProduct.name} />
+                <div>
+                  <strong>{selectedProduct.name}</strong>
+                  <p>{selectedProduct.size}</p>
+                </div>
               </div>
-            ))}
-          </div>
-          {uploadMessage ? <p>{uploadMessage}</p> : null}
-
-          {previewError ? <p className="error">{previewError}</p> : null}
-
-          <button type="button" onClick={generatePreview} disabled={isGenerating}>
-            {isGenerating ? "Generating Preview..." : "Generate Preview"}
-          </button>
-        </section>
-      ) : null}
-
-      {step >= 3 && artworkUrl ? (
-        <section className="card">
-          <h2>Preview Design</h2>
-          <div>
-            <h3>Preview Image</h3>
-            <img src={artworkUrl} alt="Memorial artwork preview" className="preview-main" />
-          </div>
-
-          <div className="grid">
-            <p><strong>Product:</strong> {selectedProduct?.name}</p>
-            <p><strong>Name:</strong> {deceasedName}</p>
-            <p><strong>Dates:</strong> {memorialDates || "-"}</p>
-            <p><strong>Style:</strong> {themeStyle || "-"}</p>
-          </div>
-
-          <div className="actions-row">
-            <button type="button" onClick={approvePreview}>Approve and Continue</button>
-            <button type="button" className="secondary" onClick={generatePreview}>Regenerate Preview</button>
-            <button type="button" className="secondary" onClick={() => setStep(2)}>Edit Details</button>
-          </div>
-          {approvedPreviewId ? <p className="ok">Preview approved.</p> : null}
-        </section>
-      ) : null}
-
-      {step >= 4 ? (
-        <section className="card">
-          <h2>Contact and Shipping Details</h2>
-          <div className="grid">
-            <div>
-              <label>Full Name *</label>
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+            ) : (
+              <div className="empty-choice">No product selected yet.</div>
+            )}
+            <div className="summary-grid">
+              <p>Honoring</p><p>{deceasedName || "-"}</p>
+              <p>Orientation</p><p>{orientation === "portrait" ? "Portrait" : "Landscape"}</p>
+              <p>Theme</p><p>{themeStyle || "-"}</p>
+              <p>Photos</p><p>{uploads.filter((file) => file.status !== "error").length || "-"}</p>
             </div>
-            <div>
-              <label>Email *</label>
-              <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
-            </div>
-            <div>
-              <label>Phone *</label>
-              <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-            </div>
-            <div>
-              <label>Address Line 1 *</label>
-              <input value={line1} onChange={(e) => setLine1(e.target.value)} />
-            </div>
-            <div>
-              <label>Address Line 2</label>
-              <input value={line2} onChange={(e) => setLine2(e.target.value)} />
-            </div>
-            <div>
-              <label>City *</label>
-              <input value={city} onChange={(e) => setCity(e.target.value)} />
-            </div>
-            <div>
-              <label>Province/State *</label>
-              <input value={region} onChange={(e) => setRegion(e.target.value)} />
-            </div>
-            <div>
-              <label>Postal/ZIP Code *</label>
-              <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
-            </div>
-            <div>
-              <label>Country *</label>
-              <input value={country} onChange={(e) => setCountry(e.target.value)} />
-            </div>
-          </div>
-
-          <label>Notes for Seller (Optional)</label>
-          <textarea rows={3} value={customerNotes} onChange={(e) => setCustomerNotes(e.target.value)} />
-
-          {submitError ? <p className="error">{submitError}</p> : null}
-
-          <button type="button" onClick={submitOrder} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Order Request"}
-          </button>
+            <p className="helper">Nothing is final yet. We&apos;ll review the full brief with you before production.</p>
+            <button type="button" onClick={nextStep} disabled={step >= 4}>Next Step</button>
+          </aside>
         </section>
       ) : null}
 
       {step === 5 ? (
         <section className="card confirm">
-          <h2>Thank You</h2>
+          <h2>Thank you</h2>
           <p>Your memorial product request has been submitted. We will review the artwork and contact you before production.</p>
           <p><strong>Confirmation Number:</strong> {orderId}</p>
           <p><strong>Product:</strong> {selectedProduct?.name}</p>
