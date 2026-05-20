@@ -345,7 +345,7 @@ export default function StudioPage() {
   return (
     <main className="studio-shell">
       <header className="topbar">
-        <div className="brand">Eternal Prints</div>
+        <div className="brand">Eturnal Prints</div>
         <div className="subbrand">MEMORIAL DESIGN</div>
       </header>
 
