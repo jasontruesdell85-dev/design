@@ -79,12 +79,29 @@ export async function POST(request: Request) {
       : prompt;
 
     const openai = new OpenAI({ apiKey: env.openAiApiKey });
-    const response = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt: promptWithPhotoUse,
-      ...(referenceImageUrl ? { image: [referenceImageUrl] } : {}),
-      size: orientation === "landscape" ? "1536x1024" : "1024x1536"
-    } as any);
+    const size = orientation === "landscape" ? "1536x1024" : "1024x1536";
+
+    let response;
+    if (referenceImageUrl) {
+      const refRes = await fetch(referenceImageUrl);
+      if (!refRes.ok) {
+        return NextResponse.json({ error: "Could not read uploaded reference photo" }, { status: 500 });
+      }
+      const refBytes = await refRes.arrayBuffer();
+      const refFile = new File([refBytes], "reference.png", { type: "image/png" });
+      response = await openai.images.edit({
+        model: "gpt-image-1",
+        prompt: promptWithPhotoUse,
+        image: refFile,
+        size
+      });
+    } else {
+      response = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: promptWithPhotoUse,
+        size
+      });
+    }
 
     const b64 = response.data?.[0]?.b64_json;
     if (!b64) {
