@@ -190,6 +190,7 @@ export default function StudioPage() {
 
   async function generatePreview() {
     setPreviewError("");
+    setSubmitError("");
     if (!selectedProduct) {
       setPreviewError("Please select a product first.");
       return;
@@ -245,6 +246,7 @@ export default function StudioPage() {
 
   async function approvePreview() {
     if (!previewId) return;
+    setSubmitError("");
 
     const res = await fetch("/api/previews/approve", {
       method: "POST",

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const approvedPreviewId = cleanText(body.approved_preview_id, 80);
   const productId = cleanText(body.product_id, 40);
 
-  if (!sessionId || !approvedPreviewId || !validProductId(productId)) {
+  if (!sessionId || !validProductId(productId)) {
     return NextResponse.json({ error: "Approved preview is required before submission" }, { status: 400 });
   }
 
@@ -38,12 +38,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A valid email address is required" }, { status: 400 });
   }
 
-  const { data: approvedPreview } = await supabaseAdmin
-    .from("generated_previews")
-    .select("id, session_id, artwork_url, mockup_url, is_approved")
-    .eq("id", approvedPreviewId)
-    .eq("session_id", sessionId)
-    .single();
+  let approvedPreview = null as null | {
+    id: string;
+    session_id: string;
+    artwork_url: string | null;
+    mockup_url: string | null;
+    is_approved: boolean | null;
+  };
+
+  if (approvedPreviewId) {
+    const { data } = await supabaseAdmin
+      .from("generated_previews")
+      .select("id, session_id, artwork_url, mockup_url, is_approved")
+      .eq("id", approvedPreviewId)
+      .eq("session_id", sessionId)
+      .single();
+    approvedPreview = data;
+  }
+
+  if (!approvedPreview?.is_approved) {
+    const { data } = await supabaseAdmin
+      .from("generated_previews")
+      .select("id, session_id, artwork_url, mockup_url, is_approved")
+      .eq("session_id", sessionId)
+      .eq("is_approved", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    approvedPreview = data;
+  }
 
   if (!approvedPreview?.is_approved) {
     return NextResponse.json({ error: "Approved preview is required before submission" }, { status: 400 });
