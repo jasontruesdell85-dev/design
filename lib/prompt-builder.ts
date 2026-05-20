@@ -21,7 +21,7 @@ export function buildMemorialPrompt(input: PromptInput) {
   const textLines = [name, dates, message].filter(Boolean).join(" | ");
 
   return [
-    `Create a ${tone} background for ${input.productName ?? "a memorial product"}${input.material ? ` made for ${input.material}` : ""}.`,
+    `Create a ${tone} memorial design for ${input.productName ?? "a memorial product"}${input.material ? ` made for ${input.material}` : ""}.`,
     `Composition orientation: ${input.orientation || "portrait"}.`,
     `Theme details: ${input.hobbiesInterestsPlaces || "gentle natural memorial motifs"}.`,
     `Color direction: ${input.colors || "warm neutrals with soft contrast"}.`,
@@ -29,6 +29,8 @@ export function buildMemorialPrompt(input: PromptInput) {
     `Visual style: ${style}.`,
     `Render memorial text directly in the design using this exact content: ${textLines}.`,
     "Text must be readable, centered, and elegant with high contrast against the background.",
+    "Keep all text fully inside the image bounds with generous margins. No clipping, truncation, or text running off the canvas.",
+    "Place text in the lower third, leave the face area unobstructed, and keep text to 3 lines max.",
     `General instructions: ${input.generalInstructions || "none"}.`,
     "Avoid horror, gore, fantasy death imagery, gimmicky effects, or visually busy compositions.",
     "Not cartoonish unless explicitly requested."

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { buildMemorialPrompt } from "@/lib/prompt-builder";
-import { composeArtwork, composeMockup } from "@/lib/image-compose";
+import { composeArtwork } from "@/lib/image-compose";
 import { cleanText, validOrientation, validProductId, validSessionId } from "@/lib/validation";
 
 type GenerateRequest = {
@@ -117,32 +117,24 @@ export async function POST(request: Request) {
       quoteOrMessage: cleanText(body.quoteOrMessage, 300)
     });
 
-    const mockupBuffer = await composeMockup(artworkBuffer, productId);
-
     const ts = Date.now();
     const artworkPath = `generated/${sessionId}/artwork-${ts}.png`;
-    const mockupPath = `generated/${sessionId}/mockup-${ts}.png`;
+    const { error: artworkUploadError } = await supabaseAdmin.storage
+      .from(env.storageBucketName)
+      .upload(artworkPath, artworkBuffer, { contentType: "image/png", upsert: true });
 
-    const [artworkUpload, mockupUpload] = await Promise.all([
-      supabaseAdmin.storage.from(env.storageBucketName).upload(artworkPath, artworkBuffer, { contentType: "image/png", upsert: true }),
-      supabaseAdmin.storage.from(env.storageBucketName).upload(mockupPath, mockupBuffer, { contentType: "image/png", upsert: true })
-    ]);
-
-    if (artworkUpload.error || mockupUpload.error) {
-      return NextResponse.json({ error: artworkUpload.error?.message ?? mockupUpload.error?.message }, { status: 500 });
+    if (artworkUploadError) {
+      return NextResponse.json({ error: artworkUploadError.message }, { status: 500 });
     }
 
-    const [artworkSigned, mockupSigned] = await Promise.all([
-      supabaseAdmin.storage.from(env.storageBucketName).createSignedUrl(artworkPath, 60 * 60 * 24),
-      supabaseAdmin.storage.from(env.storageBucketName).createSignedUrl(mockupPath, 60 * 60 * 24)
-    ]);
+    const artworkSigned = await supabaseAdmin.storage
+      .from(env.storageBucketName)
+      .createSignedUrl(artworkPath, 60 * 60 * 24);
 
     const artworkUrl =
       artworkSigned.data?.signedUrl ??
       supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(artworkPath).data.publicUrl;
-    const mockupUrl =
-      mockupSigned.data?.signedUrl ??
-      supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(mockupPath).data.publicUrl;
+    const mockupUrl = artworkUrl;
 
     const { data: preview, error: previewError } = await supabaseAdmin
       .from("generated_previews")

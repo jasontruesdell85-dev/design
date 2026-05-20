@@ -439,18 +439,12 @@ export default function StudioPage() {
         </section>
       ) : null}
 
-      {step >= 3 && mockupUrl && artworkUrl ? (
+      {step >= 3 && artworkUrl ? (
         <section className="card">
           <h2>Preview Design</h2>
-          <div className="preview-grid">
-            <div>
-              <h3>Product Mockup</h3>
-              <img src={mockupUrl} alt="Product mockup preview" className="preview-main" />
-            </div>
-            <div>
-              <h3>Flat Artwork</h3>
-              <img src={artworkUrl} alt="Flat memorial artwork" className="preview-main" />
-            </div>
+          <div>
+            <h3>Preview Image</h3>
+            <img src={artworkUrl} alt="Memorial artwork preview" className="preview-main" />
           </div>
 
           <div className="grid">
