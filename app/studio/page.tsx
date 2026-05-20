@@ -20,6 +20,20 @@ type UploadedItem = {
   error?: string;
 };
 
+function extractErrorMessage(value: unknown, fallback = "Generation failed") {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    const maybe = value as { message?: unknown; error?: unknown };
+    if (typeof maybe.message === "string" && maybe.message.trim()) return maybe.message;
+    if (typeof maybe.error === "string" && maybe.error.trim()) return maybe.error;
+    if (maybe.error && typeof maybe.error === "object") {
+      const nested = maybe.error as { message?: unknown };
+      if (typeof nested.message === "string" && nested.message.trim()) return nested.message;
+    }
+  }
+  return fallback;
+}
+
 const products: Product[] = [
   {
     id: "wooden_plaque",
@@ -215,7 +229,7 @@ export default function StudioPage() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Generation failed");
+      if (!res.ok) throw new Error(extractErrorMessage(json?.error ?? json, "Generation failed"));
 
       setPreviewId(json.previewId);
       setArtworkUrl(json.artworkUrl);
