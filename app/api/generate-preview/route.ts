@@ -86,8 +86,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: artworkUpload.error?.message ?? mockupUpload.error?.message }, { status: 500 });
   }
 
-  const artworkUrl = supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(artworkPath).data.publicUrl;
-  const mockupUrl = supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(mockupPath).data.publicUrl;
+  const [artworkSigned, mockupSigned] = await Promise.all([
+    supabaseAdmin.storage.from(env.storageBucketName).createSignedUrl(artworkPath, 60 * 60 * 24),
+    supabaseAdmin.storage.from(env.storageBucketName).createSignedUrl(mockupPath, 60 * 60 * 24)
+  ]);
+
+  const artworkUrl =
+    artworkSigned.data?.signedUrl ??
+    supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(artworkPath).data.publicUrl;
+  const mockupUrl =
+    mockupSigned.data?.signedUrl ??
+    supabaseAdmin.storage.from(env.storageBucketName).getPublicUrl(mockupPath).data.publicUrl;
 
   const { data: preview, error: previewError } = await supabaseAdmin
     .from("generated_previews")
