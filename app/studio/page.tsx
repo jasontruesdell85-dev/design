@@ -131,8 +131,10 @@ export default function StudioPage() {
 
   function onFilesPicked(fileList: FileList | null) {
     if (!fileList) return;
+    if (uploads.length >= 8) return;
 
-    const next = Array.from(fileList).map((file) => {
+    const remainingSlots = Math.max(0, 8 - uploads.length);
+    const next = Array.from(fileList).slice(0, remainingSlots).map((file) => {
       const previewUrl = URL.createObjectURL(file);
       const allowed = ["image/jpeg", "image/png", "image/heic", "image/heif"];
       if (!allowed.includes(file.type)) {
@@ -475,7 +477,19 @@ export default function StudioPage() {
                 <p className="helper">Tell us what you want the design to feel like.</p>
 
                 <label>Photos (optional)</label>
-                <input type="file" accept="image/png,image/jpeg,image/heic,image/heif" multiple onChange={(e) => onFilesPicked(e.target.files)} />
+                <input
+                  id="photo-upload"
+                  className="file-input-hidden"
+                  type="file"
+                  accept="image/png,image/jpeg,image/heic,image/heif"
+                  multiple
+                  onChange={(e) => onFilesPicked(e.target.files)}
+                />
+                <label htmlFor="photo-upload" className="upload-dropzone">
+                  <span className="upload-icon">↥</span>
+                  <span className="upload-title">Click to upload photos</span>
+                  <span className="upload-subtitle">JPG or PNG, up to 8 images</span>
+                </label>
                 <div className="thumb-row">
                   {uploads.map((item, index) => (
                     <div className="thumb" key={`${item.file.name}-${index}`}>

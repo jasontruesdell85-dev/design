@@ -192,6 +192,51 @@ label { display: block; margin: 8px 0 6px; font-weight: 500; color: #182a38; }
 
 .helper { color: #5f7081; font-size: 15px; margin-top: 6px; margin-bottom: 14px; }
 
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-dropzone {
+  margin-top: 6px;
+  border: 1px dashed #c9cec6;
+  border-radius: 14px;
+  min-height: 122px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: #f8f8f5;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  padding: 16px;
+}
+
+.upload-dropzone:hover {
+  background: #f3f4f0;
+  border-color: #b6bfb3;
+}
+
+.upload-icon {
+  font-size: 24px;
+  color: #6e7c8a;
+  line-height: 1;
+}
+
+.upload-title {
+  margin-top: 6px;
+  color: #213445;
+  font-size: 18px;
+}
+
+.upload-subtitle {
+  margin-top: 4px;
+  color: #677786;
+  font-size: 14px;
+}
+
 .thumb-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
 .thumb { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fff; }
 .thumb img { width: 100%; height: 85px; object-fit: cover; border-radius: 6px; }
