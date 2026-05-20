@@ -149,7 +149,8 @@ label { display: block; margin: 8px 0 6px; font-weight: 500; color: #182a38; }
 .product-card img { width: 100%; height: 250px; border-radius: 10px; object-fit: cover; }
 .product-card h3 { font-size: 28px; margin-top: 8px; }
 .product-card p { color: #4b5d6e; margin-top: 4px; font-size: 15px; }
-.meta { color: #5d6c7b; font-size: 14px; }
+.meta { color: #5d6c7b; font-size: 14px; margin-bottom: 10px; }
+.product-card button { margin-top: auto; }
 
 .panel-actions {
   margin-top: 20px;
@@ -189,7 +190,7 @@ label { display: block; margin: 8px 0 6px; font-weight: 500; color: #182a38; }
 .summary-grid p { margin: 0; font-size: 18px; }
 .summary-grid p:nth-child(odd) { text-transform: uppercase; letter-spacing: 0.08em; color: #617282; font-size: 14px; }
 
-.helper { color: #5f7081; font-size: 15px; margin-top: 6px; }
+.helper { color: #5f7081; font-size: 15px; margin-top: 6px; margin-bottom: 14px; }
 
 .thumb-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
 .thumb { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fff; }
