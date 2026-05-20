@@ -9,37 +9,13 @@ type OverlayInput = {
   quoteOrMessage?: string;
 };
 
-function esc(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 export async function composeArtwork(base: Buffer, input: OverlayInput) {
   const spec = getProductSpec(input.productId);
   const portrait = (input.orientation || spec.defaultOrientation) === "portrait";
   const width = portrait ? spec.width : spec.height;
   const height = portrait ? spec.height : spec.width;
 
-  const resized = await sharp(base).resize(width, height, { fit: "cover", position: "center" }).png().toBuffer();
-
-  const line1 = esc(input.deceasedName || "In Loving Memory");
-  const line2 = esc(input.memorialDates || "");
-  const line3 = esc(input.quoteOrMessage || "");
-
-  const box = spec.textBox;
-  const overlaySvg = `
-  <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="24" fill="rgba(20,18,16,0.30)" />
-    <text x="${box.x + box.width / 2}" y="${box.y + 220}" text-anchor="middle" fill="#f7f2ea" font-family="Georgia, serif" font-size="140">${line1}</text>
-    <text x="${box.x + box.width / 2}" y="${box.y + 370}" text-anchor="middle" fill="#efe7db" font-family="Georgia, serif" font-size="84">${line2}</text>
-    <text x="${box.x + box.width / 2}" y="${box.y + 560}" text-anchor="middle" fill="#f3eee6" font-family="Arial, sans-serif" font-size="68">${line3}</text>
-  </svg>`;
-
-  return sharp(resized).composite([{ input: Buffer.from(overlaySvg), top: 0, left: 0 }]).png().toBuffer();
+  return sharp(base).resize(width, height, { fit: "cover", position: "center" }).png().toBuffer();
 }
 
 export async function composeMockup(artwork: Buffer, productId: string) {
