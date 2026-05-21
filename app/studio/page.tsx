@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Product = {
   id: string;
@@ -107,11 +107,13 @@ export default function StudioPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [zoomedImageUrl, setZoomedImageUrl] = useState("");
+  const hasAutoStartedRef = useRef(false);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId),
     [selectedProductId]
   );
+  const memorialDatesLabel = useMemo(() => [birthDate, passingDate].filter(Boolean).join(" — "), [birthDate, passingDate]);
 
   useEffect(() => {
     function onEscape(event: KeyboardEvent) {
@@ -120,6 +122,20 @@ export default function StudioPage() {
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
   }, []);
+
+  useEffect(() => {
+    if (step !== 4) {
+      hasAutoStartedRef.current = false;
+      return;
+    }
+
+    if (hasAutoStartedRef.current) return;
+    if (isGenerating || artworkUrl) return;
+    if (!selectedProductId || !deceasedName.trim() || !hobbies.trim() || !generalInstructions.trim()) return;
+
+    hasAutoStartedRef.current = true;
+    void generatePreview();
+  }, [step, isGenerating, artworkUrl, selectedProductId, deceasedName, hobbies, generalInstructions]);
 
   function nextStep() {
     setStep((current) => Math.min(4, current + 1));
@@ -225,8 +241,6 @@ export default function StudioPage() {
 
     try {
       setIsGenerating(true);
-      const dates = [birthDate, passingDate].filter(Boolean).join(" - ");
-
       const res = await fetch("/api/generate-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -237,7 +251,7 @@ export default function StudioPage() {
           material: selectedProduct.material,
           orientation,
           deceasedName,
-          memorialDates: dates,
+          memorialDates: memorialDatesLabel,
           quoteOrMessage: quote,
           themeStyle,
           colors,
@@ -312,7 +326,7 @@ export default function StudioPage() {
           product_name: selectedProduct.name,
           orientation,
           deceased_name: deceasedName,
-          memorial_dates: [birthDate, passingDate].filter(Boolean).join(" - "),
+          memorial_dates: memorialDatesLabel,
           theme_style: themeStyle,
           colors,
           religious_or_spiritual_elements: spiritual,
@@ -522,9 +536,18 @@ export default function StudioPage() {
                 <p>Preview the design, then send it to our designers.</p>
 
                 {artworkUrl ? (
-                  <img src={artworkUrl} alt="Memorial artwork preview" className="preview-main" />
+                  <div className="preview-stage">
+                    <img src={artworkUrl} alt="Memorial artwork preview" className="preview-main" />
+                    <div className="text-overlay">
+                      {quote.trim() ? <p className="overlay-quote">{quote}</p> : null}
+                      <p className="overlay-name">{deceasedName}</p>
+                      {memorialDatesLabel ? <p className="overlay-dates">{memorialDatesLabel}</p> : null}
+                    </div>
+                  </div>
                 ) : (
-                  <div className="empty-preview">Generate a preview to continue.</div>
+                  <div className="empty-preview">
+                    {isGenerating ? "Generating your preview. Please wait..." : "Generate a preview to continue."}
+                  </div>
                 )}
 
                 <div className="review-card">

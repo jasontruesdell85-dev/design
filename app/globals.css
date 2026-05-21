@@ -260,6 +260,46 @@ label { display: block; margin: 8px 0 6px; font-weight: 500; color: #182a38; }
   background: #ebeae4;
 }
 
+.preview-stage {
+  position: relative;
+}
+
+.preview-stage .preview-main {
+  margin-bottom: 0;
+}
+
+.text-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  width: min(84%, 620px);
+  text-align: center;
+  color: #f8f2df;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+.overlay-quote {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(20px, 2.4vw, 42px);
+  font-style: italic;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.overlay-name {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(20px, 2.2vw, 38px);
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.overlay-dates {
+  font-size: clamp(14px, 1.4vw, 24px);
+}
+
 .review-card {
   border: 1px solid var(--line);
   border-radius: 12px;
